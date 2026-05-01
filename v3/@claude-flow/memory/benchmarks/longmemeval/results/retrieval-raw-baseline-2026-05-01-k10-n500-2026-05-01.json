@@ -1,0 +1,87 @@
+{
+  "strategy": "raw",
+  "label": "baseline-2026-05-01",
+  "timestamp": "2026-05-01T17:33:11.690Z",
+  "total": 500,
+  "k": 10,
+  "overall": {
+    "session_recall_at_k": 1,
+    "session_top1_recall": 1,
+    "content_at_1": 0.222,
+    "content_at_3": 0.358,
+    "content_at_k": 0.436,
+    "mrr_content": 0.2967
+  },
+  "by_category": [
+    {
+      "type": "knowledge-update",
+      "total": 78,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0.2821,
+      "content_at_3": 0.5769,
+      "content_at_k": 0.6923,
+      "mrr_content": 0.4283
+    },
+    {
+      "type": "multi-session",
+      "total": 133,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0.1128,
+      "content_at_3": 0.2256,
+      "content_at_k": 0.3308,
+      "mrr_content": 0.1856
+    },
+    {
+      "type": "single-session-assistant",
+      "total": 56,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0.3036,
+      "content_at_3": 0.5357,
+      "content_at_k": 0.5536,
+      "mrr_content": 0.4095
+    },
+    {
+      "type": "single-session-preference",
+      "total": 30,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0,
+      "content_at_3": 0,
+      "content_at_k": 0,
+      "mrr_content": 0
+    },
+    {
+      "type": "single-session-user",
+      "total": 70,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0.6,
+      "content_at_3": 0.7714,
+      "content_at_k": 0.8143,
+      "mrr_content": 0.6855
+    },
+    {
+      "type": "temporal-reasoning",
+      "total": 133,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0.1128,
+      "content_at_3": 0.1504,
+      "content_at_k": 0.2406,
+      "mrr_content": 0.1455
+    }
+  ],
+  "latency": {
+    "retrieval_p50_ms": 0.0153,
+    "retrieval_p95_ms": 0.0313,
+    "retrieval_p99_ms": 0.0461
+  },
+  "config": {
+    "embed_dim": 384,
+    "hnsw_m": 16,
+    "hnsw_ef_construction": 200
+  }
+}

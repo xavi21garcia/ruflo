@@ -1,0 +1,37 @@
+{
+  "strategy": "smart",
+  "label": "smart-bench-2026-05-01",
+  "timestamp": "2026-05-01T17:32:46.462Z",
+  "total": 30,
+  "k": 10,
+  "overall": {
+    "session_recall_at_k": 1,
+    "session_top1_recall": 1,
+    "content_at_1": 0.1,
+    "content_at_3": 0.2,
+    "content_at_k": 0.2333,
+    "mrr_content": 0.1486
+  },
+  "by_category": [
+    {
+      "type": "temporal-reasoning",
+      "total": 30,
+      "session_recall_at_k": 1,
+      "session_top1_recall": 1,
+      "content_at_1": 0.1,
+      "content_at_3": 0.2,
+      "content_at_k": 0.2333,
+      "mrr_content": 0.1486
+    }
+  ],
+  "latency": {
+    "retrieval_p50_ms": 6.9183,
+    "retrieval_p95_ms": 14.0725,
+    "retrieval_p99_ms": 14.664
+  },
+  "config": {
+    "embed_dim": 384,
+    "hnsw_m": 16,
+    "hnsw_ef_construction": 200
+  }
+}
