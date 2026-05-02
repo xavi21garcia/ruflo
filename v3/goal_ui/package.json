@@ -29,6 +29,7 @@
     "check:mcp-manifest": "tsx scripts/check-mcp-manifest.mjs",
     "check:mcp-roundtrip": "tsx scripts/check-mcp-roundtrip.mjs",
     "check:consensus": "tsx scripts/check-consensus.mjs",
+    "docs:regenerate": "bash scripts/regenerate-docs.sh",
     "check:audit": "npm audit --omit=dev --audit-level=critical",
     "check:audit:high": "npm audit --omit=dev --audit-level=high || echo '(non-blocking; see audit-known-issues.md)'",
     "postbuild": "bash scripts/check-secrets.sh"

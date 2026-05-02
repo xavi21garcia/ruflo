@@ -134,3 +134,9 @@ Each workflow needs:
 - ⑤ Network error: stub endpoint → reject → assert reconnect / retry behavior
 
 That's 5 × 4 wired workflows = 20 workflow assertions for Step 17. Add a sixth row for cancellation if the UI exposes one.
+
+
+<!-- auto-regen-footer:start -->
+<!-- This file is regenerated nightly by
+     `.github/workflows/goal_ui-nightly-doc.yml` (R-7.2 / ADR-100).
+     Last regenerated: 2026-05-02T16:35:13Z -->

@@ -202,3 +202,9 @@ This keeps the e2e harness resilient against text/style changes.
 | Plan generation (A-02, I-01 submit) | `goapPlanner.ts` (local) + `supabase.functions.invoke('research-step')` | local + `LOCAL_FN` / `GCF` |
 | Report rendering (I-08, RM-*) | reads from local plan state + `supabase.from(...)` | `RVF_BROWSER` (IndexedDB) |
 | Revise form (R-*) | writes to local config state + `supabase.functions.invoke('optimize-research-config')` | local + `LOCAL_FN` / `GCF` |
+
+
+<!-- auto-regen-footer:start -->
+<!-- This file is regenerated nightly by
+     `.github/workflows/goal_ui-nightly-doc.yml` (R-7.2 / ADR-100).
+     Last regenerated: 2026-05-02T16:35:13Z -->
