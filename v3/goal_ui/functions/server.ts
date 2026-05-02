@@ -35,6 +35,7 @@ import { generateResearchGoalHandler } from './generate-research-goal/handler';
 import { researchStepHandler } from './research-step/handler';
 import { generateActionItemsHandler } from './generate-action-items/handler';
 import { optimizeResearchConfigHandler } from './optimize-research-config/handler';
+import { listTemplatesHandler } from './list-templates/handler';
 
 // Cloud Run injects PORT — honor it. Fall back to FUNCTIONS_PORT
 // (the goal_ui dev convention) and finally to 8787 for local
@@ -112,35 +113,10 @@ app.use('/functions/v1/*', async (c, next) => {
   await next();
 });
 
-// Static frontend serving (Cloud Run combined-deploy mode):
-// when `dist/` is present alongside the server, serve it at `/`
-// with SPA fallback. Both the SPA and the function endpoints live
-// at the same origin → no CORS, no separate frontend deploy.
-//
-// In local dev, `dist/` doesn't exist (the SPA runs via `npm run dev`
-// on a separate port), so this block is a no-op and we fall through
-// to the textual endpoint listing below.
-const DIST_DIR = resolve(process.cwd(), 'dist');
-const SERVE_STATIC = existsSync(DIST_DIR);
-if (SERVE_STATIC) {
-  // Restrict static serving to GET so POST /functions/v1/* falls
-  // through to the API handlers below.
-  app.get('/*', serveStatic({ root: './dist' }));
-  // SPA fallback — paths that don't match a static file fall back
-  // to index.html so React Router can take over.
-  app.get('*', async (c) => {
-    const idx = await import('node:fs/promises').then((fs) => fs.readFile(resolve(DIST_DIR, 'index.html'), 'utf8'));
-    return c.html(idx);
-  });
-} else {
-  app.get('/', (c) => c.text(
-    'RuFlo functions dev server — endpoints:\n' +
-    '  POST /functions/v1/generate-research-goal\n' +
-    '  POST /functions/v1/research-step\n' +
-    '  POST /functions/v1/generate-action-items\n' +
-    '  POST /functions/v1/optimize-research-config\n',
-  ));
-}
+// API routes MUST be registered before the static-serve block — Hono
+// matches in registration order, and the SPA fallback's `app.get('/*')`
+// would otherwise swallow GET routes like `/functions/v1/list-templates`
+// and return index.html.
 
 app.post('/functions/v1/generate-research-goal', async (c) => {
   const body = await c.req.json().catch(() => ({}));
@@ -161,6 +137,7 @@ app.post('/functions/v1/research-step', async (c) => {
     aiModel: typeof body.aiModel === 'string' ? body.aiModel : undefined,
     config: body.config,
     previousStepsData: Array.isArray(body.previousStepsData) ? body.previousStepsData as never : undefined,
+    templateId: typeof body.templateId === 'string' ? body.templateId : undefined,
   });
   return c.json(result.body, { status: result.status as 200 | 400 | 402 | 429 | 500 | 502 });
 });
@@ -176,6 +153,14 @@ app.post('/functions/v1/generate-action-items', async (c) => {
   return c.json(result.body, { status: result.status as 200 | 400 | 402 | 429 | 500 | 502 });
 });
 
+// ADR-102 Phase 1: GET because the response is deploy-pinned metadata
+// (no LLM call, no per-user state). Cacheable both on client and edge.
+app.get('/functions/v1/list-templates', async (c) => {
+  const result = await listTemplatesHandler();
+  c.header('Cache-Control', 'public, max-age=300');
+  return c.json(result.body, { status: result.status as 200 });
+});
+
 app.post('/functions/v1/optimize-research-config', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { preset?: string; currentGoal?: string };
   const result = await optimizeResearchConfigHandler({
@@ -184,6 +169,40 @@ app.post('/functions/v1/optimize-research-config', async (c) => {
   });
   return c.json(result.body, { status: result.status as 200 | 400 | 402 | 429 | 500 | 502 });
 });
+
+// Static frontend serving (Cloud Run combined-deploy mode):
+// when `dist/` is present alongside the server, serve it at `/`
+// with SPA fallback. Both the SPA and the function endpoints live
+// at the same origin → no CORS, no separate frontend deploy.
+//
+// MUST be registered AFTER the API routes above — Hono matches in
+// registration order; the `/*` here would otherwise eat GET endpoints.
+//
+// In local dev, `dist/` doesn't exist (the SPA runs via `npm run dev`
+// on a separate port), so this block is a no-op and we fall through
+// to the textual endpoint listing below.
+const DIST_DIR = resolve(process.cwd(), 'dist');
+const SERVE_STATIC = existsSync(DIST_DIR);
+if (SERVE_STATIC) {
+  // Restrict static serving to GET so POST /functions/v1/* falls
+  // through to the API handlers below.
+  app.get('/*', serveStatic({ root: './dist' }));
+  // SPA fallback — paths that don't match a static file fall back
+  // to index.html so React Router can take over.
+  app.get('*', async (c) => {
+    const idx = await import('node:fs/promises').then((fs) => fs.readFile(resolve(DIST_DIR, 'index.html'), 'utf8'));
+    return c.html(idx);
+  });
+} else {
+  app.get('/', (c) => c.text(
+    'RuFlo functions dev server — endpoints:\n' +
+    '  GET  /functions/v1/list-templates\n' +
+    '  POST /functions/v1/generate-research-goal\n' +
+    '  POST /functions/v1/research-step\n' +
+    '  POST /functions/v1/generate-action-items\n' +
+    '  POST /functions/v1/optimize-research-config\n',
+  ));
+}
 
 // Surface LLM credential resolution at startup so operators see whether
 // the server will run real or mock — without leaking the key value.

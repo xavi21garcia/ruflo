@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { IdentifierSchema } from '@claude-flow/security';
 import { wrapUserInput, UserPromptInputSchema } from '../_lib/sanitize';
 import { callLlmWithTool, isLlmAvailable } from '../_lib/llm';
+import { getTemplate } from '../_lib/templates';
 
 const ToolOutputSchema = z.object({
   goals: z
@@ -47,16 +48,9 @@ CRITICAL: Generate VARIETY across the 3 goals by varying:
 
 Push the boundaries. Be specific. Be innovative.`;
 
-const CATEGORY_PROMPTS: Record<string, string> = {
-  finance: 'Generate 3 cutting-edge, diverse research goals for finance. Vary across: (1) emerging technologies (crypto, DeFi, AI trading), (2) novel market mechanisms or regulations, (3) behavioral/psychological aspects or systemic risks. Include specific metrics, timeframes, or novel applications.',
-  business: 'Generate 3 innovative, diverse research goals for business. Vary across: (1) emerging business models or platforms, (2) organizational transformation or culture, (3) data-driven decision making or automation. Be specific about industry, scale, and measurable outcomes.',
-  marketing: 'Generate 3 boundary-pushing, diverse research goals for marketing. Vary across: (1) emerging channels or technologies (AI, AR/VR, Web3), (2) behavioral science or psychology, (3) measurement or attribution innovation. Include specific platforms, demographics, or novel approaches.',
-  medical: 'Generate 3 cutting-edge, diverse research goals for medical/healthcare. Vary across: (1) emerging diagnostic or treatment technologies, (2) healthcare delivery or access innovations, (3) personalized/precision medicine or AI applications. Be specific about conditions, populations, or technologies.',
-  education: 'Generate 3 innovative, diverse research goals for education. Vary across: (1) emerging pedagogical technologies (AI tutors, VR, adaptive learning), (2) learning science or cognitive research, (3) educational equity or accessibility. Include specific age groups, subjects, or measurable learning outcomes.',
-  technical: 'Generate 3 cutting-edge, diverse research goals for technical/engineering. Vary across: (1) emerging architectures or paradigms, (2) performance or efficiency breakthroughs, (3) security or reliability innovations.',
-  coding: 'Generate 3 innovative, diverse research goals for coding/software development. Vary across: (1) emerging languages, frameworks, or paradigms, (2) AI-assisted development or automation, (3) code quality, testing, or collaboration tools.',
-  'ai-ml': 'Generate 3 CUTTING-EDGE, diverse research goals for AI, Machine Learning, and Autonomous Agents. MUST vary across: (1) agentic AI systems, (2) novel architectures or training paradigms, (3) real-world applications or societal implications.',
-};
+// ADR-102 Phase 1: prompt fragments now live in `_lib/templates.ts`.
+// Lookup happens via `getTemplate(category)` below. The inline fallback
+// for unknown categories stays in the user-prompt construction site.
 
 const TOOL_PARAMS = {
   type: 'object',
@@ -131,9 +125,10 @@ export async function generateResearchGoalHandler(
 
   const safeCategory = wrapUserInput(category);
   const safeContext = wrapUserInput(customContext ?? category);
-  const userPrompt =
-    CATEGORY_PROMPTS[category.toLowerCase()] ??
-    `Generate 3 innovative, boundary-pushing research goals based on: ${safeContext}. Category hint: ${safeCategory}.`;
+  const template = getTemplate(category);
+  const userPrompt = template
+    ? template.goalGenerationPrompt
+    : `Generate 3 innovative, boundary-pushing research goals based on: ${safeContext}. Category hint: ${safeCategory}.`;
 
   const result = await callLlmWithTool({
     system: SYSTEM_PROMPT,
