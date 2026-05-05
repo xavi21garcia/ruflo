@@ -11,11 +11,17 @@
 
 import { spawnSync } from 'node:child_process';
 
+// ADR-100 / #1748 Issue 3 — CLI_CORE=1 routes to lite cli-core (~2s cold-cache).
+// Conversation listing is list+retrieve only; no search. JSON backend is fine.
+const CLI_PKG = process.env.CLI_CORE === '1'
+  ? '@claude-flow/cli-core@alpha'
+  : '@claude-flow/cli@latest';
+
 const NS = process.env.CONV_NAMESPACE || 'cost-tracking';
 
 function memoryListSessionKeys() {
   const r = spawnSync('npx', [
-    '@claude-flow/cli@latest', 'memory', 'list',
+    CLI_PKG, 'memory', 'list',
     '--namespace', NS, '--format', 'json',
   ], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf-8' });
   if (r.status !== 0) return [];
@@ -30,7 +36,7 @@ function memoryListSessionKeys() {
 
 function memoryRetrieve(key) {
   const r = spawnSync('npx', [
-    '@claude-flow/cli@latest', 'memory', 'retrieve',
+    CLI_PKG, 'memory', 'retrieve',
     '--namespace', NS, '--key', key,
   ], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf-8' });
   if (r.status !== 0) return null;
