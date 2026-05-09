@@ -78,18 +78,6 @@
       "desc": "Federation plugin wires real wire transport via agentic-flow/transport/loader (loadQuicTransport). plugin.ts loads transport in initialize(), binds optional listener on config.port, closes on shutdown. sendToNode now does real ws send to peer endpoint resolved via discovery.getPeer. Validated mac↔ruvultra over tailscale (150ms real send).",
       "file": "v3/@claude-flow/plugin-agent-federation/dist/plugin.js",
       "marker": "agentic-flow/transport/loader"
-    },
-    {
-      "id": "ADR-109-inbound-dispatch",
-      "desc": "Federation plugin subscribes to transport.onMessage (added in agentic-flow@2.0.12-fix.3) and dispatches inbound envelopes through inbound-dispatcher.ts. Security gates: PEER_UNKNOWN, PEER_SUSPENDED, PEER_EVICTED, MISSING_METADATA. Validated mac→ruvultra: 3/3 envelopes delivered, dispatcher fired, audit recorded 3 rejections.",
-      "file": "v3/@claude-flow/plugin-agent-federation/dist/application/inbound-dispatcher.js",
-      "marker": "FEDERATION_INBOUND_EVENT_PREFIX"
-    },
-    {
-      "id": "ADR-110-memory-spend-reporter",
-      "desc": "Federation MemorySpendReporter — production SpendReporter that satisfies the cost-tracker consumer contract (namespace=federation-spend, key=fed-spend-<peerId>-<ts>, default TTL 7d). Storage-agnostic via injected MemoryStore interface; integrators wire ruflo memory MCP/CLI/direct.",
-      "file": "v3/@claude-flow/plugin-agent-federation/dist/application/spend-reporter.js",
-      "marker": "MemorySpendReporter"
     }
   ]
 }

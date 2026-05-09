@@ -42,7 +42,6 @@ import {
   loadQuicTransport,
   type AgentMessage,
 } from 'agentic-flow/transport/loader';
-import { dispatchInbound } from './application/inbound-dispatcher.js';
 import { createMcpTools } from './mcp-tools.js';
 import { createCliCommands } from './cli-commands.js';
 
@@ -349,26 +348,6 @@ export class AgentFederationPlugin implements ClaudeFlowPlugin {
             (err instanceof Error ? err.message : String(err)),
         );
       }
-    }
-
-    // ADR-109: subscribe to inbound messages. transport.onMessage was
-    // added in agentic-flow@2.0.12-fix.3 — older builds gracefully
-    // degrade (optional method, no-op via the ?? guard).
-    if (transport && typeof transport.onMessage === 'function') {
-      transport.onMessage(async (address: string, message: AgentMessage) => {
-        await dispatchInbound(address, message, {
-          discovery,
-          audit,
-          eventBus: context.eventBus,
-          logger: context.logger,
-        });
-      });
-      context.logger.debug('Federation inbound dispatcher subscribed');
-    } else {
-      context.logger.warn(
-        'Federation transport does not expose onMessage(); inbound bytes will queue but not dispatch. ' +
-          'Upgrade agentic-flow to >= 2.0.12-fix.3.',
-      );
     }
 
     context.logger.info('Agent Federation plugin initialized');
