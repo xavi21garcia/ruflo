@@ -38,6 +38,18 @@
       "marker": "protocolVersion = '2024-11-05'"
     },
     {
+      "id": "#1883",
+      "desc": "memory_import_claude resolves project memory dir via multi-candidate hash (POSIX, WSL `/mnt/<d>/`-translated, leading-dash-stripped, space-replaced) + accepts explicit projectPath override; fixes WSL→Windows-host import returning imported=0",
+      "file": "v3/@claude-flow/cli/dist/src/mcp-tools/memory-tools.js",
+      "marker": "function resolveProjectMemoryDir"
+    },
+    {
+      "id": "#1884",
+      "desc": "memory_import_claude sanitizes constructed keys via sanitizeMemoryKey before storeEntry, ensuring memory_delete can later remove them; closes the write-path/read-path validation asymmetry that stranded keys with shell-metacharacter section titles",
+      "file": "v3/@claude-flow/cli/dist/src/mcp-tools/memory-tools.js",
+      "marker": "function sanitizeMemoryKey"
+    },
+    {
       "id": "ADR-097-Phase2a",
       "desc": "Federation peer state machine entity layer \u2014 FederationNode gains state field + suspend/evict/reactivate; canTransition gates all mutations; EVICTED is terminal under breaker flow",
       "file": "v3/@claude-flow/plugin-agent-federation/dist/domain/entities/federation-node.js",

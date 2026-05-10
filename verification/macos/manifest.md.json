@@ -1,9 +1,9 @@
 {
   "manifest": {
     "schema": "ruflo-witness/v1",
-    "issuedAt": "2026-05-10T00:52:07.473Z",
-    "gitCommit": "0e6b868b484f8d3597eab7c44ac5a1ed6a784954",
-    "branch": "feat/federation-deferred-adrs",
+    "issuedAt": "2026-05-10T14:17:56.342Z",
+    "gitCommit": "5f0c8455cb64ec4e7743a8d2f423e99122133827",
+    "branch": "fix/memory-import-1883-1884",
     "os": "macos",
     "releases": {
       "ruflo": "3.7.0-alpha.20",
@@ -12,8 +12,8 @@
       "@claude-flow/memory": "3.0.0-alpha.15"
     },
     "summary": {
-      "totalFixes": 97,
-      "verified": 97,
+      "totalFixes": 99,
+      "verified": 99,
       "missing": 0
     },
     "fixes": [
@@ -349,7 +349,7 @@
         "id": "CAP-MCP-memory-tools",
         "desc": "MCP tools (10): memory_bridge_status, memory_delete, memory_import_claude, …",
         "file": "v3/@claude-flow/cli/dist/src/mcp-tools/memory-tools.js",
-        "sha256": "f1478020eb35302b12e44e97cd99b7b357f84ccbcfd5a1dd5f1d58ad66e52743",
+        "sha256": "bbd9b1fb468da9ba1dd58eb70d3fed544f55527bb1da362cb145f1d93c66731c",
         "marker": "memory_bridge_status",
         "markerVerified": true
       },
@@ -525,7 +525,7 @@
         "id": "#1791.8",
         "desc": "content-hash dedupe in memory_import_claude --allProjects",
         "file": "v3/@claude-flow/cli/dist/src/mcp-tools/memory-tools.js",
-        "sha256": "f1478020eb35302b12e44e97cd99b7b357f84ccbcfd5a1dd5f1d58ad66e52743",
+        "sha256": "bbd9b1fb468da9ba1dd58eb70d3fed544f55527bb1da362cb145f1d93c66731c",
         "marker": "duplicatesSkipped",
         "markerVerified": true
       },
@@ -792,15 +792,31 @@
         "sha256": "9f751aaee838a85e7b2371bbd73dccb5cb89c6b7751496b18d33d8b8a559de19",
         "marker": "loadQuicTransport",
         "markerVerified": true
+      },
+      {
+        "id": "#1883",
+        "desc": "memory_import_claude resolves project memory dir via multi-candidate hash (POSIX, WSL `/mnt/<d>/`-translated, leading-dash-stripped, space-replaced) + accepts explicit projectPath override; fixes WSL→Windows-host import returning imported=0",
+        "file": "v3/@claude-flow/cli/dist/src/mcp-tools/memory-tools.js",
+        "sha256": "bbd9b1fb468da9ba1dd58eb70d3fed544f55527bb1da362cb145f1d93c66731c",
+        "marker": "function resolveProjectMemoryDir",
+        "markerVerified": true
+      },
+      {
+        "id": "#1884",
+        "desc": "memory_import_claude sanitizes constructed keys via sanitizeMemoryKey before storeEntry, ensuring memory_delete can later remove them; closes the write-path/read-path validation asymmetry that stranded keys with shell-metacharacter section titles",
+        "file": "v3/@claude-flow/cli/dist/src/mcp-tools/memory-tools.js",
+        "sha256": "bbd9b1fb468da9ba1dd58eb70d3fed544f55527bb1da362cb145f1d93c66731c",
+        "marker": "function sanitizeMemoryKey",
+        "markerVerified": true
       }
     ]
   },
   "integrity": {
     "manifestHashAlgo": "sha256",
-    "manifestHash": "b0a3bf8c7dbfcbbbaa14dc1528934345f1d46ec1b66b909db30b5bc6876e683a",
+    "manifestHash": "6eb259f8df7aa3801ddefe618f4ccf8d049e2d5d3b18669c31fae363c8a2f4aa",
     "signatureAlgo": "ed25519",
-    "publicKey": "e85263adf5257dc16d2f3060a5388cca80d2bbf513ab3adbc2ae7a70c9572f9e",
-    "signature": "6c76e76130e7416ca8da066387a60e61e35c6c1e90e244d9f9e67caab0b76d2b4448d35b887c6584efd650519f77f7ffab083e131c962933ac4e2d969765bc0b",
+    "publicKey": "6a6478da4b6ad1bd6a0485114e82b24dd88ec50c801520167e9b5fcf81e8617c",
+    "signature": "7bcaecc9f2a143153fb08a3eddc6ec421f623ebac70a306aa9b6b9fa26dadb04292ca1eaec32d94ee20162f152771ca426c227f94bed7ae2ddfe08e8d7b2150c",
     "seedDerivation": "sha256(gitCommit + ':ruflo-witness/v1')"
   }
 }

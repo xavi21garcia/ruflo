@@ -335,6 +335,51 @@ jobs:
         shell: bash
         run: node plugins/ruflo-core/scripts/test-mcp-protocol.mjs
 
+  memory-import-smoke:
+    # Regression guard for ruvnet/ruflo#1883 + #1884 — drives the import-side
+    # invariants that single-component tests missed:
+    #   #1883 — memory_import_claude(allProjects=false) failed on WSL because
+    #           project-hash derivation was POSIX-only. Verified via candidate
+    #           set including the Claude-Code Windows hash form.
+    #   #1884 — import handler skipped validateMemoryInput, producing keys
+    #           memory_delete then rejected. Verified via property test
+    #           against 27 adversarial inputs covering the full
+    #           dangerous-character set.
+    # Static dist scan + property test combined cover the bug class.
+    name: Memory import smoke / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: v3/pnpm-lock.yaml
+
+      - name: Build cli package (static scan needs dist)
+        working-directory: v3
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @claude-flow/cli... run build
+
+      - name: Run memory-import regression guards (#1883 + #1884)
+        shell: bash
+        run: node plugins/ruflo-core/scripts/test-memory-import.mjs
+
   witness-verify:
     # Cryptographic regression guard: runs `ruflo verify --manifest` against
     # the local build to confirm every documented fix in verification.md.json
@@ -361,7 +406,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    needs: [smoke-install-no-bsqlite, plugin-hooks-smoke, mcp-protocol-smoke]
+    needs: [smoke-install-no-bsqlite, plugin-hooks-smoke, mcp-protocol-smoke, memory-import-smoke]
 
     steps:
       - name: Checkout code
