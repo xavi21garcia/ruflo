@@ -85,7 +85,7 @@ ${testCommand}
 
 ## Links
 
-- Documentation: https://github.com/ruvnet/claude-flow
+- Documentation: https://github.com/ruvnet/ruflo
 `;
 }
 
@@ -279,8 +279,8 @@ npx @claude-flow/cli hooks pre-task --description "task summary"
 
 ## Links
 
-- Documentation: https://github.com/ruvnet/claude-flow
-- Issues: https://github.com/ruvnet/claude-flow/issues
+- Documentation: https://github.com/ruvnet/ruflo
+- Issues: https://github.com/ruvnet/ruflo/issues
 `;
 }
 

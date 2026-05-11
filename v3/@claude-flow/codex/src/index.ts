@@ -85,7 +85,7 @@ export const PACKAGE_INFO = {
   version: VERSION,
   description: 'Codex CLI integration for Claude Flow',
   futureUmbrella: 'coflow',
-  repository: 'https://github.com/ruvnet/claude-flow',
+  repository: 'https://github.com/ruvnet/ruflo',
 } as const;
 
 /**
