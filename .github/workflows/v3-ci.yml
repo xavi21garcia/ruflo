@@ -479,6 +479,40 @@ jobs:
         shell: bash
         run: node scripts/smoke-embeddings-diskann.mjs
 
+  cli-search-text-ensemble-smoke:
+    # ADR-121 Phase 11 — embeddings_search_text_ensemble (RRF ensemble RAG).
+    # Standard question-reformulation pattern: expand one user question
+    # into N variants, retrieve top-k for each, fuse via Reciprocal
+    # Rank Fusion (Cormack-Clarke-Büttcher 2009) to a single ranking.
+    # Items appearing high in MORE variants outrank items appearing
+    # high in only one. Smoke drives full flow: init → router build
+    # → ensemble (3 variants) → weighted → kRrf variants → validation
+    # → missing-handle path. Asserts score monotone non-increasing,
+    # ranks length = queryCount, listWeights/kRrf parameter passthrough.
+    name: cli embeddings_search_text_ensemble smoke (#2036, ADR-121 Phase 11)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build embeddings then CLI
+        run: |
+          cd v3/@claude-flow/embeddings
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npx tsc -p tsconfig.json
+          cd ../cli
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npx tsc --build --force tsconfig.json
+
+      - name: Assert RRF ensemble-retrieval contract
+        shell: bash
+        run: node scripts/smoke-cli-search-text-ensemble.mjs
+
   cli-search-text-diverse-smoke:
     # ADR-121 Phase 10 — embeddings_search_text_diverse (MMR-reranked RAG).
     # Plain top-k returns near-duplicates on duplicate-heavy corpora.

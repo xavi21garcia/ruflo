@@ -121,6 +121,18 @@ export {
   type MmrPickedHit,
 } from './mmr.js';
 
+// ADR-121 Phase 11 — Reciprocal Rank Fusion (Cormack-Clarke-Büttcher 2009).
+// Combines N ranked lists into a single fused ranking without needing
+// score comparability. Composes with `embeddings_search_text_batch`
+// for ensemble RAG.
+export {
+  reciprocalRankFusion,
+  rrfIds,
+  type RrfListItem,
+  type RrfOptions,
+  type RrfFusedHit,
+} from './rrf.js';
+
 export type { AutoEmbeddingConfig } from './embedding-service.js';
 
 // RVF embedding service (pure-TS hash-based embeddings)

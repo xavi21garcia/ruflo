@@ -1362,6 +1362,153 @@ export const embeddingsTools: MCPTool[] = [
     },
   },
   // ============================================================
+  // ADR-121 Phase 11 — RRF ensemble retrieval (alpha.52 CLI)
+  // ============================================================
+  //
+  // Question-reformulation pipelines produce N parallel result lists.
+  // Reciprocal Rank Fusion (Cormack-Clarke-Büttcher 2009) fuses them
+  // into a single ranking without needing score comparability across
+  // lists. Composes `embeddings_search_text_batch` (N parallel
+  // searches) with `reciprocalRankFusion` (rank-level merge).
+  //
+  // Standard production ensemble-RAG pattern. Pairs naturally with
+  // LLM query rewriting upstream (expand "how does auth work?" into
+  // {"how does authentication work?", "what's the login flow?",
+  //  "describe the OAuth2 handshake"} → batch search each →
+  // RRF-fuse) — recovers more relevant docs than a single search.
+  {
+    name: 'embeddings_search_text_ensemble',
+    description: "Embed N text query variants, search a named AnnRouter handle for each in parallel, then RRF-fuse (Reciprocal Rank Fusion, Cormack-Clarke-Büttcher 2009) the N hit-lists into a single merged top-k ranking. Standard production shape for question-reformulation RAG: agents expand one user question into N variants, retrieve top-k for each, get a single fused list back — items appearing high in MORE variants outrank items appearing high in only one. Returns fused hits with per-list ranks for transparency + aggregate latency. λ-equivalent here is `kRrf` (default 60 per SIGIR 2009). Per-list `listWeights` available for biased ensemble (e.g. weight the original-query list 2× over reformulations). For non-fused multi-query results use embeddings_search_text_batch; for single-query diverse retrieval use embeddings_search_text_diverse.",
+    category: 'embeddings',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        texts: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of query text variants. Order preserved in per-list ranks.',
+        },
+        name: { type: 'string', description: 'AnnRouter handle name (set by embeddings_ann_router_build).' },
+        k: { type: 'number', description: 'Number of fused results to return.' },
+        perQueryK: {
+          type: 'number',
+          description: 'Top-k per query before fusion. Default 2*k. Larger = wider candidate pool, more compute.',
+        },
+        kRrf: {
+          type: 'number',
+          description: 'RRF smoothing constant. Default 60 (SIGIR 2009). Smaller = top-rank dominance.',
+        },
+        listWeights: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Per-query weights. Length must equal texts.length. Default = 1 each.',
+        },
+      },
+      required: ['texts', 'name', 'k'],
+    },
+    handler: async (input) => {
+      const config = loadConfig();
+      if (!config) {
+        return { success: false, error: 'Embeddings not initialized. Run embeddings_init first.' };
+      }
+      const texts = input.texts as string[];
+      const name = input.name as string;
+      const k = input.k as number;
+      const perQueryK = typeof input.perQueryK === 'number' && input.perQueryK >= 1
+        ? input.perQueryK
+        : Math.max(k * 2, k);
+      const kRrf = typeof input.kRrf === 'number' && input.kRrf > 0 ? input.kRrf : 60;
+      const listWeights = Array.isArray(input.listWeights) ? input.listWeights as number[] : undefined;
+
+      if (!Array.isArray(texts) || texts.length === 0) {
+        return { success: false, error: 'texts must be a non-empty array' };
+      }
+      if (!Number.isInteger(k) || k < 1) {
+        return { success: false, error: 'k must be a positive integer' };
+      }
+      for (let i = 0; i < texts.length; i++) {
+        if (typeof texts[i] !== 'string') {
+          return { success: false, error: `texts[${i}] is not a string` };
+        }
+      }
+      if (listWeights && listWeights.length !== texts.length) {
+        return {
+          success: false,
+          error: `listWeights.length (${listWeights.length}) must match texts.length (${texts.length})`,
+        };
+      }
+
+      const { getAnnRouterRegistry } = await import('../memory/ann-router-registry.js');
+      const registry = getAnnRouterRegistry();
+
+      // Stage 1 — embed all queries in parallel.
+      const embedT0 = Date.now();
+      let embeddings: number[][];
+      try {
+        embeddings = await Promise.all(texts.map(t => generateRealEmbedding(t, config.dimension)));
+      } catch (err) {
+        return { success: false, name, error: `batch embed failed: ${err instanceof Error ? err.message : String(err)}` };
+      }
+      const embeddingMs = Date.now() - embedT0;
+
+      // Stage 2 — search each variant in parallel. Per-query errors
+      // become empty result lists (the variant just doesn't contribute
+      // to the fusion) rather than aborting the ensemble.
+      const searchT0 = Date.now();
+      const perQueryResults = await Promise.all(embeddings.map(async (emb, i) => {
+        try {
+          const hits = await registry.search(name, new Float32Array(emb), perQueryK);
+          return { index: i, text: texts[i], hits, success: true as const };
+        } catch (err) {
+          return {
+            index: i,
+            text: texts[i],
+            hits: [] as Array<{ id: string; score: number }>,
+            success: false as const,
+            error: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }));
+      const searchMs = Date.now() - searchT0;
+
+      // Stage 3 — RRF fusion across the per-query lists.
+      const { reciprocalRankFusion } = await import('@claude-flow/embeddings/rrf');
+      const fuseT0 = Date.now();
+      const lists = perQueryResults.map(r => r.hits.map(h => ({ id: h.id, payload: { score: h.score } })));
+      const fused = reciprocalRankFusion(lists, { k, kRrf, listWeights });
+      const fuseMs = Date.now() - fuseT0;
+
+      const successCount = perQueryResults.filter(r => r.success).length;
+      return {
+        success: successCount === perQueryResults.length,
+        name,
+        k,
+        queryCount: texts.length,
+        perQueryK,
+        kRrf,
+        listWeights: listWeights ?? null,
+        successCount,
+        failureCount: perQueryResults.length - successCount,
+        hits: fused,
+        perQuery: perQueryResults.map(r => ({
+          index: r.index,
+          text: r.text,
+          success: r.success,
+          hitCount: r.hits.length,
+          error: r.success ? undefined : (r as { error: string }).error,
+        })),
+        latency: {
+          embeddingMs,
+          searchMs,
+          fuseMs,
+          totalMs: embeddingMs + searchMs + fuseMs,
+          avgPerQueryMs: Math.round(((embeddingMs + searchMs) / texts.length) * 100) / 100,
+        },
+        embeddingDimension: embeddings[0]?.length,
+      };
+    },
+  },
+  // ============================================================
   // ADR-121 Phase 10 — MMR diversity rerank (alpha.51 CLI)
   // ============================================================
   //
