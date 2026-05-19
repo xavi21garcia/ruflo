@@ -38,6 +38,7 @@ export function handleConnection(ws) {
           sector: msg.sector,
           ciudad: msg.ciudad || '',
           carpetaDescarga: msg.carpetaDescarga || '',
+          mock: msg.mock || false,
         }, sendMessage);
         break;
       }

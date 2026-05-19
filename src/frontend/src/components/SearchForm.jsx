@@ -13,6 +13,7 @@ export default function SearchForm({ onSubmit, disabled }) {
     sector: '',
     ciudad: '',
     carpetaDescarga: '',
+    mock: false,
   });
 
   const update = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -83,8 +84,19 @@ export default function SearchForm({ onSubmit, disabled }) {
         />
       </div>
 
+      <div className="form-group form-full mock-toggle">
+        <label className="toggle-label">
+          <input
+            type="checkbox"
+            checked={form.mock}
+            onChange={(e) => setForm(prev => ({ ...prev, mock: e.target.checked }))}
+          />
+          <span>Modo simulacion (sin tokens, datos de ejemplo)</span>
+        </label>
+      </div>
+
       <button type="submit" className="btn btn-primary" disabled={disabled || !isValid}>
-        Iniciar busqueda de normativas
+        {form.mock ? 'Iniciar simulacion' : 'Iniciar busqueda de normativas'}
       </button>
     </form>
   );

@@ -62,7 +62,12 @@ export function startSearch(sessionId, params, sendMessage) {
 
   sendMessage({ type: 'session_start', sessionId, agents: session.agents });
 
-  runAgentPipeline(sessionId, session, params, outputDir, sendMessage);
+  const useMock = params.mock || process.env.MOCK === '1';
+  if (useMock) {
+    runMockPipeline(sessionId, session, params, outputDir, sendMessage);
+  } else {
+    runAgentPipeline(sessionId, session, params, outputDir, sendMessage);
+  }
 }
 
 async function runAgentPipeline(sessionId, session, params, outputDir, send) {
@@ -261,4 +266,117 @@ function mapAgentName(raw) {
   if (lower.includes('valid')) return 'validator';
   if (lower.includes('doc')) return 'documenter';
   return lower;
+}
+
+const MOCK_MESSAGES = {
+  coordinator: [
+    'Iniciando análisis de normativas para {pais}, región {region}.',
+    'Sector identificado: {sector}. Configurando parámetros de búsqueda.',
+    'Distribuyendo tareas a los agentes especializados.',
+  ],
+  geoanalyst: [
+    'Analizando contexto geográfico de {region}, {pais}.',
+    'Identificadas 3 zonas normativas aplicables a {ciudad}.',
+    'Clasificación sísmica: zona de riesgo moderado. Normativas estructurales requeridas.',
+    'Datos climáticos: zona tropical húmeda. Normativas de ventilación y aislamiento aplicables.',
+  ],
+  searcher: [
+    'Buscando normativas vigentes para sector {sector} en {region}...',
+    'Encontrada: Ley General de Urbanismo y Construcción.',
+    'Encontrada: Reglamento de Seguridad Estructural de las Construcciones (RSEC).',
+    'Encontrada: Norma Técnica de Diseño por Sismo (NTDS).',
+    'Encontrada: Normativa OPAMSS para el área metropolitana.',
+    'Encontrada: Reglamento ANDA para instalaciones hidráulicas.',
+    'Total: 8 normativas vigentes identificadas, 3 guías complementarias.',
+  ],
+  validator: [
+    'Verificando vigencia de las normativas encontradas...',
+    'RSEC 1994: vigente (última actualización 2018).',
+    'NTDS 1997: vigente, complementada por RSEC.',
+    'Reglamento ANDA: vigente (actualizado 2023).',
+    'OPAMSS LDOTAMSS: vigente (marzo 2026).',
+    'Validación completada: 8/8 normativas confirmadas como vigentes.',
+  ],
+  documenter: [
+    'Generando informe consolidado...',
+    'Sección 1: Marco legal general — completada.',
+    'Sección 2: Normativas estructurales y sísmicas — completada.',
+    'Sección 3: Instalaciones hidráulicas y sanitarias — completada.',
+    'Sección 4: Normativas ambientales y de seguridad — completada.',
+    'Informe guardado exitosamente.',
+  ],
+};
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function runMockPipeline(sessionId, session, params, outputDir, send) {
+  const { pais, region, sector, ciudad } = params;
+  const fillTemplate = (msg) =>
+    msg.replace(/\{pais}/g, pais).replace(/\{region}/g, region)
+       .replace(/\{sector}/g, sector).replace(/\{ciudad}/g, ciudad || region);
+
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const sanitize = (s) => s.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+  const outputFile = path.join(
+    outputDir,
+    `${timestamp}_${sanitize(pais)}_${sanitize(region)}_${sanitize(sector)}_normativas.md`
+  );
+  session.outputFile = outputFile;
+
+  for (const agentDef of AGENTS) {
+    if (session.status === 'cancelled') return;
+
+    const agent = session.agents.find(a => a.id === agentDef.id);
+    agent.status = 'running';
+    send({ type: 'agent_start', agentId: agent.id, agentName: agent.name, icon: agent.icon });
+
+    const messages = MOCK_MESSAGES[agent.id] || ['Procesando...'];
+    for (const msg of messages) {
+      if (session.status === 'cancelled') return;
+      await sleep(800 + Math.random() * 1200);
+      const text = fillTemplate(msg);
+      session.messages.push(text);
+      send({ type: 'agent_message', message: text, agentId: agent.id });
+    }
+
+    await sleep(500);
+    agent.status = 'completed';
+    send({ type: 'agent_end', agentId: agent.id, agentName: agent.name, icon: agent.icon });
+  }
+
+  const report = `# Informe de Normativas — ${pais}, ${region}
+## Sector: ${sector}
+## Fecha: ${new Date().toISOString().slice(0, 10)}
+
+### Normativas identificadas
+
+1. **Reglamento de Seguridad Estructural (RSEC 1994)** — Vigente
+2. **Norma Técnica de Diseño por Sismo (NTDS 1997)** — Vigente
+3. **Reglamento de Urbanismo y Construcción (D70)** — Vigente
+4. **OPAMSS LDOTAMSS (Marzo 2026)** — Vigente
+5. **Normativa ANDA — Factibilidades 2023** — Vigente
+6. **Ley de Medio Ambiente** — Vigente
+7. **Código de Salud (D955)** — Vigente
+8. **NT UPREV 001/002 2025 — Bomberos** — Vigente
+
+### Resumen
+Se identificaron 8 normativas vigentes aplicables al sector ${sector} en ${region}, ${pais}.
+Todas las fuentes fueron verificadas y se encuentran en vigor.
+
+---
+*Informe generado en modo simulación.*
+`;
+
+  fs.writeFileSync(outputFile, report, 'utf-8');
+
+  session.status = 'completed';
+  send({
+    type: 'session_end',
+    sessionId,
+    status: 'completed',
+    outputFile,
+    skippedAgents: [],
+  });
 }
