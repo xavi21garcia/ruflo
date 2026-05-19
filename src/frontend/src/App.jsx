@@ -23,7 +23,7 @@ export default function App() {
             <div className="welcome-card">
               <h2>Buscador de Normativas de Edificacion</h2>
               <p>
-                Sistema multi-agente que identifica, busca, valida y documenta
+                Sistema de busqueda que identifica, busca, valida y documenta
                 las normativas aplicables a tu proyecto de construccion.
               </p>
               <SearchForm onSubmit={handleSubmit} disabled={!connected} />
@@ -40,12 +40,7 @@ export default function App() {
               )}
             </aside>
             <main className="main-chat">
-              <ChatPanel
-                messages={messages}
-                question={question}
-                onSendResponse={sendUserResponse}
-                status={status}
-              />
+              <ChatPanel messages={messages} status={status} />
             </main>
           </div>
         )}

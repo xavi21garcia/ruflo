@@ -4,6 +4,7 @@ const STATUS_LABELS = {
   idle: 'En espera',
   running: 'Buscando...',
   completed: 'Completado',
+  partial: 'Parcial',
   error: 'Error',
 };
 
@@ -12,7 +13,6 @@ export default function Header({ connected, status }) {
     <header className="header">
       <div className="header-left">
         <h1>Normativas</h1>
-        <span className="header-subtitle">Equipo Multi-Agente</span>
       </div>
       <div className="header-right">
         {status !== 'idle' && (

@@ -1,19 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 
-export default function ChatPanel({ messages, question, onSendResponse, status }) {
+export default function ChatPanel({ messages, status }) {
   const endRef = useRef(null);
-  const [input, setInput] = useState('');
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    onSendResponse(input.trim());
-    setInput('');
-  };
 
   return (
     <div className="chat-panel">
@@ -45,18 +37,6 @@ export default function ChatPanel({ messages, question, onSendResponse, status }
         <div ref={endRef} />
       </div>
 
-      <form className="chat-input" onSubmit={handleSend}>
-        <input
-          type="text"
-          placeholder={question ? 'Responde a la pregunta del agente...' : 'Escribe un mensaje...'}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={status !== 'running'}
-        />
-        <button type="submit" className="btn btn-send" disabled={!input.trim() || status !== 'running'}>
-          Enviar
-        </button>
-      </form>
     </div>
   );
 }
